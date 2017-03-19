@@ -1,0 +1,143 @@
+---
+title: "Conversion_EDA"
+author: "Regan Yee"
+date: "February 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+
+## Setup data source
+setwd("~/Documents/Data Science Challenges/Conversion Rate/")
+data = read.csv("./conversion_data.csv")
+```
+
+## Data Summaries
+
+```{r summaries}
+## Examine the first row of the data
+head(data,1)
+## Gets the summary of the data
+summary(data)
+```
+
+```{r}
+## Let's factorize and re-level some boolean variables
+data$new_user = as.factor(data$new_user)
+levels(data$new_user) = c("No", "Yes")
+
+data$converted = as.factor(data$converted)
+levels(data$converted) = c("No", "Yes")
+```
+
+Let's examine how many new users there were:
+
+``` {r counts, echo=FALSE}
+data %>% group_by(new_user) %>% summarize(count=n()) %>% 
+  ggplot(aes(x=new_user, y=count)) +
+  geom_bar(stat="identity") +
+  xlab("New User?") + 
+  ylab("Count") +
+  ggtitle("Count of New Users in Dataset") +
+  geom_text(aes(label=count, vjust=-.35))
+```
+
+And how many people actually converted in this dataset?
+
+```{r echo=FALSE}
+data %>% group_by(converted) %>% summarize(count=n()) %>%
+  ggplot(aes(x=converted, y=count)) +
+  geom_bar(stat="identity") +
+  xlab("Converted?") + 
+  ylab("Count") +
+  ggtitle("Conversions in Dataset") +
+  geom_text(aes(label=count, vjust=-.35))
+```
+
+Visually inspecting the sources data:
+
+``` {r, echo=FALSE}
+data %>% group_by(source) %>% summarize(count=n()) %>% 
+  arrange(-count) %>% 
+  mutate(source = factor(source, source)) %>% 
+  ggplot(aes(x=source, y=count)) + 
+  geom_bar(stat="identity") +
+  xlab("Source") + 
+  ylab("Count") +
+  ggtitle("Count of Sources in Dataset") +
+  geom_text(aes(label=count, vjust=-.35))
+```
+
+Visually inspecting the pages visited data:
+
+``` {r, echo=FALSE}
+data %>% group_by(total_pages_visited) %>% summarize(count=n()) %>% 
+  ggplot(aes(x=total_pages_visited, y=count)) + 
+  geom_bar(stat="identity") +
+  xlab("Pages Visited") + 
+  ylab("Count") +
+  ggtitle("Number of Pages Visited by Users")
+```
+
+Let's look at the age breakdown of the users on the site:
+
+``` {r, echo=FALSE}
+## Let's create an age range factor
+data$bins = cut(data$age, breaks=c(0,11,17,24,34,44,54,64,max(data$age)))
+levels(data$bins) = c("0-11", "12-17", "18-24", "25-34", "35-44", "45-54", "55-64", "65+")
+
+data %>% group_by(bins) %>% summarize(count=n()) %>% 
+  ggplot(aes(x=bins, y=count)) +
+  geom_bar(stat="identity") +
+  xlab("Age") + 
+  ylab("Count") +
+  ggtitle("Age Breakdown of Dataset") +
+  geom_text(aes(label=count, vjust=-.35))
+```
+
+
+## Insights
+* The current conversion rate in the dataset is **3.23%**
+* We can see that a majority of the users are from the US.
+* The age data has some data that needs to be validated as there is a user with age of 123 (very unlikely!)
+* 49% of users are coming in via SEO; 28% of users via ads, and the remaining 23% are direct users.
+* On average, a user will view 5 pages in a visit
+* 68% of the users are creating new accounts
+
+## Questions
+Let's look at a couple of questions:
+
+1. Where are most of the conversions coming from? By source, by country?
+2. What is the typical age of a converter?
+3. What is the correlation between the factors in the dataset?
+
+## Conversion Metrics
+```{r}
+data %>% 
+  filter(converted=="Yes") %>% 
+  group_by(source) %>% 
+  summarize(count=n())
+
+data %>% 
+  filter(converted=="Yes") %>% 
+  group_by(country) %>% 
+  summarize(count=n())
+
+data %>% 
+  filter(converted=="Yes") %>% 
+  group_by(bins) %>% 
+  summarize(count=n())
+
+data %>% 
+  filter(converted=="Yes") %>% 
+  group_by(total_pages_visited) %>% 
+  summarize(count=n()) %>% 
+  ggplot(aes(x=total_pages_visited, y=count)) + 
+  geom_bar(stat="identity") +
+  xlab("Pages Visited") + 
+  ylab("Count") +
+  ggtitle("Number of Pages Visited by Converted Users")
+```
